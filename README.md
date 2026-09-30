@@ -26,8 +26,8 @@ A console-based **CRUD (Create, Read, Update, Delete)** application implemented 
 
 
 ## Repository Structure
-KALPAVRIKSHA/
 ```
+KALPAVRIKSHA/
 ├── calculator.c
 ├── crud.c
 ├── users.txt
