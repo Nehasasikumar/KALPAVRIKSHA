@@ -1,130 +1,157 @@
 ﻿#include <stdio.h>
+#include <string.h>
+#define MAX_NAME_LENGTH 50
+#define MAX_AGE 120
 
 struct User{
     int id;
-    char name[50];
+    char name[MAX_NAME_LENGTH];
     int age;
 };
 
-void clearInputBuffer(){
+void clear_input_buffer(){
     int ch;
-    while ((ch = getchar()) != '\n' && ch != EOF);
+    while((ch = getchar()) != '\n' && ch != EOF);
 }
 
-int readInt(){
+int read_int(){
     int value;
-    while (scanf("%d", &value) != 1){
+    while(scanf("%d", &value) != 1){
         printf("Invalid input.\nPlease enter a number: ");
-        clearInputBuffer();
+        clear_input_buffer();
     }
-    clearInputBuffer();
+    clear_input_buffer();
     return value;
 }
 
-int idExists(int id){
-    FILE *fp;
-    struct User u;
-    fp = fopen("users.txt","r");
-    if (fp == NULL){
+void create_file_if_not_exists(){
+    FILE *file;
+    file = fopen("users.txt", "a");
+    if(file == NULL){
+        printf("Unable to create users file.\n");
+        return;
+    }
+    fclose(file);
+}
+
+int id_exists(int id){
+    FILE *file;
+    struct User user;
+    file = fopen("users.txt", "r");
+    if(file == NULL){
         return 0;
     }
-    while (fscanf(fp,"%d,%49[^,],%d",&u.id,u.name,&u.age) == 3){
-        if (u.id == id){
-            fclose(fp);
+    while(fscanf(file, "%d,%49[^,],%d", &user.id, user.name, &user.age) == 3){
+        if(user.id == id){
+            fclose(file);
             return 1;
         }
     }
-    fclose(fp);
+    fclose(file);
     return 0;
 }
 
-void createUser(){
-    FILE *fp;
-    struct User u;
-    printf("Enter ID: ");
-    u.id = readInt();
-    while (u.id <= 0){
-        printf("ID must be greater than 0. Enter ID: ");
-        u.id = readInt();
+int read_name(char name[]){
+    printf("Enter Name: ");
+    scanf(" %49[^\n]", name);
+    clear_input_buffer();
+    if(strpbrk(name, ",$!@#%^&*():;><?/}{[]|+=-_") != NULL){
+    printf("Invalid name. Special characters are not allowed.\n");
+    return 0;
     }
-    if (idExists(u.id)){
+    return 1;
+}
+
+void create_user(){
+    FILE *file;
+    struct User user;
+    create_file_if_not_exists();
+    printf("Enter ID: ");
+    user.id = read_int();
+    while(user.id <= 0){
+        printf("ID must be greater than 0. Enter ID: ");
+        user.id = read_int();
+    }
+    if(id_exists(user.id)){
         printf("ID already exists. Please use a unique ID.\n");
         return;
     }
-    printf("Enter Name: ");
-    scanf(" %49[^,\n]", u.name);
-    clearInputBuffer();
-    printf("Enter Age: ");
-    u.age = readInt();
-    while (u.age <= 0 || u.age > 120){
-        printf("Invalid age.\nEnter age between 1 and 120: ");
-        u.age = readInt();
+    while(!read_name(user.name)){
     }
-    fp = fopen("users.txt","a");
-    if (fp == NULL){
+    printf("Enter Age: ");
+    user.age = read_int();
+    while(user.age <= 0 || user.age > MAX_AGE){
+        printf("Invalid age.\nEnter age between 1 and %d: ",MAX_AGE);
+        user.age = read_int();
+    }
+    file = fopen("users.txt", "a");
+    if(file == NULL){
         printf("Unable to open file.\n");
         return;
     }
-    fprintf(fp,"%d,%s,%d\n",u.id, u.name, u.age);
-    fclose(fp);
+    fprintf(file, "%d,%s,%d\n", user.id, user.name, user.age);
+    fclose(file);
     printf("User added successfully.\n");
 }
 
-void readUsers(){
-    FILE *fp;
-    struct User u;
+void read_users(){
+    FILE *file;
+    struct User user;
     int count = 0;
-    fp = fopen("users.txt", "r");
-    if (fp == NULL){
+    file = fopen("users.txt", "r");
+    if(file == NULL){
         printf("No users found.\n");
         return;
     }
     printf("\nID\tName\t\tAge\n");
-    while (fscanf(fp,"%d,%49[^,],%d",&u.id, u.name, &u.age) == 3){
-        printf("%d\t%-15s\t%d\n",u.id, u.name, u.age);
+    while(fscanf(file, "%d,%49[^,],%d", &user.id, user.name, &user.age) == 3){
+        printf("%d\t%-15s\t%d\n", user.id, user.name, user.age);
         count++;
     }
-    fclose(fp);
-    if (count == 0){
+    fclose(file);
+    if(count == 0){
         printf("No users found in the file.\n");
     }
 }
 
-void updateUser(){
-    FILE *fp, *temp;
-    struct User u;
-    int id, found = 0;
-    fp = fopen("users.txt", "r");
-    if (fp == NULL){
+void update_user(){
+    FILE *file;
+    FILE *temporary_file;
+    struct User user;
+    int id;
+    int found = 0;
+    printf("Enter ID to update: ");
+    id = read_int();
+    file = fopen("users.txt", "r");
+    if(file == NULL){
         printf("No users found.\n");
         return;
     }
-    temp = fopen("temp.txt", "w");
-    if (temp == NULL){
+    temporary_file = fopen("temp.txt", "w");
+    if(temporary_file == NULL){
         printf("Unable to create temporary file.\n");
-        fclose(fp);
+        fclose(file);
         return;
     }
-    printf("Enter ID to update: ");
-    id = readInt();
-    while (fscanf(fp,"%d,%49[^,],%d",&u.id, u.name, &u.age) == 3){
-        if (u.id == id){
-            printf("Enter new name: ");
-            scanf(" %49[^,\n]", u.name);
-            clearInputBuffer();
+
+    while(fscanf(file, "%d,%49[^,],%d", &user.id, user.name, &user.age) == 3){
+        if(user.id == id){
+            while(!read_name(user.name)){
+            }
             printf("Enter new age: ");
-            u.age = readInt();
-            while (u.age <= 0 || u.age > 120){
-                printf("Invalid age. Enter age between 1 and 120: ");
-                u.age = readInt();
+            user.age = read_int();
+            while(user.age <= 0 || user.age > MAX_AGE){
+                printf("Invalid age. Enter age between 1 and %d: ",MAX_AGE);
+                user.age = read_int();
             }
             found = 1;
         }
-        fprintf(temp, "%d,%s,%d\n",u.id, u.name, u.age);
+        fprintf(temporary_file, "%d,%s,%d\n",
+                user.id, user.name, user.age);
     }
-    fclose(fp);
-    fclose(temp);
-    if (found){
+    fclose(file);
+    fclose(temporary_file);
+    if(found){
         remove("users.txt");
         rename("temp.txt", "users.txt");
         printf("User updated successfully.\n");
@@ -135,33 +162,36 @@ void updateUser(){
     }
 }
 
-void deleteUser(){
-    FILE *fp, *temp;
-    struct User u;
-    int id, found = 0;
-    fp = fopen("users.txt", "r");
-    if (fp == NULL){
+void delete_user(){
+    FILE *file;
+    FILE *temporary_file;
+    struct User user;
+    int id;
+    int found = 0;
+    printf("Enter ID to delete: ");
+    id = read_int();
+    file = fopen("users.txt", "r");
+    if(file == NULL){
         printf("No users found.\n");
         return;
     }
-    temp = fopen("temp.txt", "w");
-    if (temp == NULL){
+    temporary_file = fopen("temp.txt", "w");
+    if(temporary_file == NULL){
         printf("Unable to create temporary file.\n");
-        fclose(fp);
+        fclose(file);
         return;
     }
-    printf("Enter ID to delete: ");
-    id = readInt();
-    while (fscanf(fp, "%d,%49[^,],%d",&u.id, u.name, &u.age) == 3){
-        if (u.id == id){
+    while(fscanf(file, "%d,%49[^,],%d", &user.id, user.name, &user.age) == 3){
+        if(user.id == id){
             found = 1;
             continue;
         }
-        fprintf(temp, "%d,%s,%d\n",u.id, u.name, u.age);
+        fprintf(temporary_file, "%d,%s,%d\n",
+                user.id, user.name, user.age);
     }
-    fclose(fp);
-    fclose(temp);
-    if (found){
+    fclose(file);
+    fclose(temporary_file);
+    if(found){
         remove("users.txt");
         rename("temp.txt", "users.txt");
         printf("User deleted successfully.\n");
@@ -174,26 +204,26 @@ void deleteUser(){
 
 int main(){
     int choice;
-    while (1){
+    while(1){
         printf("\n1. Create User\n");
         printf("2. Read Users\n");
         printf("3. Update User\n");
         printf("4. Delete User\n");
         printf("5. Exit\n");
         printf("Enter your choice: ");
-        choice = readInt();
-        switch (choice){
+        choice = read_int();
+        switch(choice){
             case 1:
-                createUser();
+                create_user();
                 break;
             case 2:
-                readUsers();
+                read_users();
                 break;
             case 3:
-                updateUser();
+                update_user();
                 break;
             case 4:
-                deleteUser();
+                delete_user();
                 break;
             case 5:
                 printf("Program ended.\n");
