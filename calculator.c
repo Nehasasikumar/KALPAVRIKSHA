@@ -1,144 +1,133 @@
 #include <stdio.h>
 #include <ctype.h>
+#define MAX_SIZE 100
 
-int invalidexpr(char expr[]){
-    for(int i=0; expr[i]!='\0'; i++){
-        if (isdigit(expr[i])){
-            continue;
-        }
-        if (expr[i] == '+' || 
-           expr[i] == '-' ||
-           expr[i] == '*' ||
-           expr[i] == '/'){
-               continue;
-           }
-        return 1;
-    }
-    return 0;
-}
-
-int invalidstructure(char expr[]){
-    int expectedNum=1;
+int is_invalid_structure(char expression[]){
+    int expect_number = 1;
     int i = 0;
-    while(expr[i] != '\0'){
-        if(expectedNum){
-            if(!isdigit(expr[i])){
+    while(expression[i] != '\0'){
+        if(expect_number){
+            if(!isdigit(expression[i])){
                 return 1;
             }
             i++;
-            while (isdigit(expr[i])){
+            while(isdigit(expression[i])){
                 i++;
-                
             }
-            expectedNum = 0;
+            expect_number = 0;
         }
         else{
-            if(expr[i] == '+' || expr[i] == '-' || expr[i] == '*' || expr[i] == '/'){
+            if(expression[i] == '+' ||
+               expression[i] == '-' ||
+               expression[i] == '*' ||
+               expression[i] == '/'){
                 i++;
-                expectedNum = 1;
+                expect_number = 1;
             }
             else{
                 return 1;
             }
-            
         }
     }
-    if(expectedNum){
+    if(expect_number){
         return 1;
-    }     
+    }
     return 0;
 }
 
-int precedence(char op){
-    if (op == '+' || op == '-'){
+int get_precedence(char operator){
+    if(operator == '+' || operator == '-'){
         return 1;
     }
-    if (op == '*' || op == '/'){
+    if(operator == '*' || operator == '/'){
         return 2;
     }
     return 0;
 }
 
-int calculate(int a, int b, char op){
-    if (op == '+'){
-        return a+b;
+int calculate_operation(int left_operand, int right_operand, char operator, int *error){
+    if(operator == '+'){
+        return left_operand + right_operand;
     }
-    if (op == '-'){
-        return a-b;
+    if(operator == '-'){
+        return left_operand - right_operand;
     }
-    if (op == '*'){
-        return a*b;
+    if(operator == '*'){
+        return left_operand * right_operand;
     }
-    if (op == '/'){
-        if (b == 0){
-            printf("Error: Division by zero");
-            return -99999;
-        }   
-        return a/b;
+    if(operator == '/'){
+        if(right_operand == 0){
+            *error = 1;
+            return 0;
+        }
+        return left_operand / right_operand;
     }
-    return -99999;
+    *error = 1;
+    return 0;
 }
 
-int evaluate(char expr[]){
-    int values[100];
-    char ops[100];
-    int valTop = -1;
-    int opTop = -1;
-    
-    for(int i=0; expr[i]!='\0'; i++){
-        if (isdigit(expr[i])){
-            int val = 0;
-            while (isdigit(expr[i])){
-                val = (val*10) + (expr[i]-'0');
+int evaluate_expression(char expression[], int *error){
+    int values[MAX_SIZE];
+    char operators[MAX_SIZE];
+    int value_top = -1;
+    int operator_top = -1;
+    for(int i = 0; expression[i] != '\0'; i++){
+        if(isdigit(expression[i])){
+            int value = 0;
+            while(isdigit(expression[i])){
+                value = (value * 10) + (expression[i] - '0');
                 i++;
             }
-            values[++valTop] = val;
+            values[++value_top] = value;
             i--;
         }
         else{
-            while(opTop != -1 && precedence(ops[opTop]) >= precedence(expr[i])){
-                int b = values[valTop--];
-                int a = values[valTop--];
-                char op = ops[opTop--];
-                values[++valTop] = calculate(a, b, op);
+            while(operator_top != -1 && get_precedence(operators[operator_top]) >= get_precedence(expression[i])){
+                int right_operand = values[value_top--];
+                int left_operand = values[value_top--];
+                char operator = operators[operator_top--];
+                values[++value_top] = calculate_operation(left_operand, right_operand,operator, error);
+                if(*error){
+                    return 0;
+                }
             }
-            ops[++opTop] = expr[i];
+            operators[++operator_top] = expression[i];
         }
     }
-    
-    while(opTop != -1){
-        int b = values[valTop--];
-        int a = values[valTop--];
-        char op = ops[opTop--];
-        values[++valTop] = calculate(a, b, op);
+    while(operator_top != -1){
+        int right_operand = values[value_top--];
+        int left_operand = values[value_top--];
+        char operator = operators[operator_top--];
+        values[++value_top] = calculate_operation(left_operand, right_operand, operator, error);
+        if(*error){
+            return 0;
+        }
     }
-    
-    return values[valTop];
+    return values[value_top];
 }
 
 int main(){
-    char expr[100];
+    char expression[MAX_SIZE];
     printf("Enter the expression: ");
-    scanf("%99[^\n]",expr);
-    
-    int j=0;
-    
-    for(int i=0; expr[i]!='\0'; i++){
-        if (expr[i] != ' '){
-            expr[j] = expr[i];
+    scanf("%99[^\n]", expression);
+    int j = 0;
+    for(int i = 0; expression[i] != '\0'; i++){
+        if(expression[i] != ' '){
+            expression[j] = expression[i];
             j++;
         }
-        
     }
-    expr[j] = '\0';
-    if (invalidexpr(expr) || invalidstructure(expr)){
-        printf("Error: Invalid expression");
+    expression[j] = '\0';
+    if(is_invalid_structure(expression)){
+        printf("Error: Invalid expression\n");
         return 1;
     }
-    if (evaluate(expr) == -99999){
+    int error = 0;
+    int result = evaluate_expression(expression, &error);
+    if(error){
+        printf("Error: Division by zero\n");
         return 1;
     }
-    else{
-        printf("Result: %d", evaluate(expr));
-    }
+    printf("Result: %d\n", result);
+    return 0;
 }
