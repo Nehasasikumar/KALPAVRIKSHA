@@ -1,7 +1,4 @@
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
 #define MAX_NAME_LENGTH 100
 #define CATEGORY_NAME_LENGTH 20
 
@@ -9,6 +6,11 @@ const int STANDARD_PRICE = 150;
 const int PREMIUM_PRICE = 250;
 const int RECLINER_PRICE = 400;
 const float DISCOUNT_RATE = 0.10f;
+typedef enum {
+    STANDARD = 1,
+    PREMIUM,
+    RECLINER
+} TicketCategory;
 
 int readCustomerName(char customerName[]) {
     int ch;
@@ -20,12 +22,14 @@ int readCustomerName(char customerName[]) {
         if (ch == ' ' || ch == '\t') {
             hasSpace = 1;
         }
+
         if (length < MAX_NAME_LENGTH - 1) {
             customerName[length++] = (char)ch;
         } else {
             tooLong = 1;
         }
     }
+
     customerName[length] = '\0';
     if (length == 0 || hasSpace || tooLong) {
         printf("Invalid customer name. Enter a single word.\n");
@@ -34,7 +38,8 @@ int readCustomerName(char customerName[]) {
     return 1;
 }
 
-int readBookingDetails(char customerName[], int *tickets, int *category) {
+int readBookingDetails(char customerName[], int *tickets, TicketCategory *category) {
+    int categoryInput;
     if (!readCustomerName(customerName)) {
         return 0;
     }
@@ -42,10 +47,15 @@ int readBookingDetails(char customerName[], int *tickets, int *category) {
         printf("Invalid ticket count input.\n");
         return 0;
     }
-    if (scanf("%d", category) != 1) {
+    if (scanf("%d", &categoryInput) != 1) {
         printf("Invalid category input.\n");
         return 0;
     }
+    if (categoryInput < STANDARD || categoryInput > RECLINER) {
+        printf("Invalid ticket category. Choose 1, 2, or 3.\n");
+        return 0;
+    }
+    *category = (TicketCategory)categoryInput;
     return 1;
 }
 
@@ -53,22 +63,20 @@ int validateTicketCount(int tickets) {
     return tickets >= 1 && tickets <= 20;
 }
 
-int getTicketDetails(int category, int *ticketPrice, char categoryName[]) {
+int getTicketDetails(TicketCategory category, int *ticketPrice, char categoryName[]) {
     switch (category) {
-        case 1:
+        case STANDARD:
             *ticketPrice = STANDARD_PRICE;
-            snprintf(categoryName, CATEGORY_NAME_LENGTH,
-                     "Standard");
+            snprintf(categoryName, CATEGORY_NAME_LENGTH, "Standard");
             break;
-        case 2:
+        case PREMIUM:
             *ticketPrice = PREMIUM_PRICE;
-            snprintf(categoryName, CATEGORY_NAME_LENGTH,
-                     "Premium");
+            snprintf(categoryName, CATEGORY_NAME_LENGTH, "Premium");
             break;
-        case 3:
+
+        case RECLINER:
             *ticketPrice = RECLINER_PRICE;
-            snprintf(categoryName, CATEGORY_NAME_LENGTH,
-                     "Recliner");
+            snprintf(categoryName, CATEGORY_NAME_LENGTH, "Recliner");
             break;
         default:
             return 0;
@@ -99,10 +107,12 @@ void displayBill(char customerName[], char categoryName[], int tickets, float su
 int main(void) {
     char customerName[MAX_NAME_LENGTH];
     char categoryName[CATEGORY_NAME_LENGTH];
-    int tickets, category, ticketPrice;
+    int tickets, ticketPrice;
+    TicketCategory category;
     float subtotal, discount, finalBill;
-    if (!readBookingDetails(customerName, &tickets, &category))
+    if (!readBookingDetails(customerName, &tickets, &category)) {
         return 1;
+    }
     if (!validateTicketCount(tickets)) {
         printf("Invalid ticket count. Enter between 1 and 20.\n");
         return 1;
